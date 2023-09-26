@@ -8,13 +8,35 @@
 	.type	fibonacci, @function
 	
 fibonacci:
+	addi sp, sp, -12
+	sw ra, 4(sp)
+	sw a0, 0(sp)
 
-	#------Your code starts here------
-	# fibonacci number : a0
+	addi t0, a0, -2
+	bgt t0, x0, Loop
 
-	# Load return value to reg a0
-	#------Your code ends here------
-
+	addi a0, x0, 1
+	addi sp, sp, 12
 	jr	ra
 	.size	fibonacci, .-fibonacci
 	.ident	"GCC: (g2ee5e430018) 12.2.0"
+
+Loop:
+	addi a0, a0, -1
+	jal ra, fibonacci
+	addi t1, a0, 0
+	sw t1, 8(sp)
+	lw a0, 0(sp)
+
+	addi a0, a0, -2
+	jal ra, fibonacci
+	lw t1, 8(sp)
+	add t1, t1, a0
+	lw ra, 4(sp)
+	lw a0, 0(sp)
+	addi a0, t1, 0
+
+	addi sp, sp, 12
+	
+
+	jalr x0, 0(x1)
