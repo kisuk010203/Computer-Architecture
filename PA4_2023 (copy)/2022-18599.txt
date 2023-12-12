@@ -1,0 +1,38 @@
+The caching process can be divided into several steps.
+
+1. Preprocessing(Line 152~155)
+We use the index masks to evaluate the indices for each layer. The tags 
+can be evaluated by simply shifting the address for an appropriate amount.
+
+2. Search through L1(Line 158~173)
+We search through the L1 layer by fixing the index as the preprocessed value.
+If the tag coincides, it is clear that this is a cache hit. The lru value of the
+corresponding cache is updated and the lru counter is incremented if we use the lru 
+policy. Otherwise, it remains unchanged.
+We should dirty the cache if it is not dirty yet, and write is 1. This is to consider
+the M operation case, where first the cache will be stored, and then written over. In 
+this case the corresponding L2 cache must also be dirtied.
+If L1 hit occurred, we verbose output the hit and return. Otherwise, we go to step 3.
+
+3. Cache current data in L1(Line 179~202)
+For in the case L1 miss occurred, we should cache the current data in L1 first.
+To do this, we define an intermediate variable named target, which is the place
+where the cache is desired to be inserted.
+If there are any invalid places, i.e. empty spots, the loop is immediately broke. Otherwise, 
+we find the minimum lru place, and this is the target. 
+If the target value is valid, we call L1 eviction. Also, if it is dirty, we should write
+to L2. Lastly, we overwrite the current data into the target place.
+
+4. Search through L2(Line 205~215)
+This is similar to L1, only with different index, lru counter and associativity.
+If L2 hit occurred, we return immediately. Otherwise we go to step 5.
+
+5. Cache current data in L2(Line 221~256)
+We do the same process we did in Step 3. If the target place is valid, we call L2 
+eviction and write to memory if the target place is dirty. Also, we search for canonical 
+L1 eviction. In order to do this, we should first calculate the following index and tag for L1
+for the evicted data. After this, we evict the data from L1 again.
+Finally, we overwrite the data in L2.
+
+
+

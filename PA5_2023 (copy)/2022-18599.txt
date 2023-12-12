@@ -1,0 +1,23 @@
+The main features of the optimization is as follows. 
+
+1. Loop reordering
+We first reorder the k loop and j loop. This is faster because we first find the data around inputA[blocked_i * K + blocked_k] and then inputB[blocked_k * N + blocked_j].
+Hence, the iteration should go in i -> k -> j order to preserve such locality.
+
+2. blocking
+The block size is set to 512, and we divide the matrix into 512 * 512 blocks. The index of the start of each block is defined as i, j, k, letting 
+them to be multiples of 512.
+This is a hardware friendly optimization, as it considers the size of the cached amounts.
+
+3. SIMD
+At last, SIMD operates as the main optimization method. First, the vector a queried at inputA[blocked_i * K + blocked_k] is broadcasted using the _mm256_set1_epi512
+Then, sum is initialized as the output's 8 integers starting at position output[blocked_i * N + blocked_j]. This sum is to be updated later.
+Afterwards, the corresponding vector from inputB should be updated, starting from the position blocked_k * N + blocked_j. If we multiply a and b, we get the following vector.
+(inputA[blocked_i][blocked_k] * inputB[blocked_k][blocked_j], inputA[blocked_i][blocked_k] * inputB[blocked_k][blocked_j + 1], ...)
+This can be added to (output[blocked_i][blocked_j], output[blocked_i][blocked_j + 1], ...) naturally. Hence we are done.
+This optimizes the process 8 times as parallelizing the load, multiply, sum, and store, which is very efficient.
+
+** To use SIMD operations, in the code, the following lines were inevitably used.
+`#include <immintrin.h>`
+`#pragma GCC target("avx,avx2")`
+
