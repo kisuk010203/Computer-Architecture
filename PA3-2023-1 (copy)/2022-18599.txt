@@ -1,0 +1,22 @@
+1. Forwarding unit of EX stage
+In the EX stage, we should detect whether the data needs forwarding. 
+There is a detector forward_lhs and forward_rhs. These each compare EX_rs1 and MEM_rd, WB_rd.
+MEM_rd forwarding is prior against WB_rd forwarding. 
+After detection of the need for forwarding, we actually forward the data and put it in the inputs
+of the ALU, namely alu_lhs and alu_rhs.
+
+2. Load-use data hazard
+Even if we have forwarding, there might be a load-use-hazard. This is detected at the ID stage. 
+ID_hazard detects if the rs1 or rs2 of the ID stage is used as the rd in EX stage, and EX_mem_read is true,
+and EX_rd is nonzero. There is a subtlety that ID_rs2 must not be considered if it is the imm64 value, i.e. 
+when ID_alu_src is true. 
+If there is a hazard, the pipeline should stall. Hence, the next data of the EX stage must all be set to zero.
+After this, the next EX stage has EX_rd zero, so the pipeline works again.
+
+3. Branch detection
+Even though a branch may not be taken, we first evaluate its address and put it in ID_branch_address. Also, 
+we need to detect whether a branch is taken in the ID stage, which needs forwarding. Forwarding is needed when 
+there is reg_write in the MEM or WB stage. This is similar as the forwarding in 1. Also, there might be a hazard if
+there is reg_write in EX stage, or some load use in the MEM stage. Hence, it needs to stall before it is done. Also,
+we use branch_equal to detect whether the branches are equal or not. If the prediction was wrong, we flush the instructions
+and rearrange the correct address.
