@@ -1,0 +1,68 @@
+1. onebitParity
+x is simultaneously being "folded" into half. As the parity of the sum of each 
+digit represents the total number of 1's in x, using this method, this value is invariant
+along the last 2^n digits(n=5..0). Hence, the value of the LSB of the final result is the
+parity of the total count of 1 of x originally.
+
+2. checkSubstraction
+First, `negativeY` is 2's complement of `y`. Also, diff is the naive sum of `x` and `negativeY`.
+Overflow or underflow only occurs when the sign of x and y differ, and the sum value has greater 
+absolute value than the limit of 32-bit int. If so, the MSB must be toggled due to over/underflow. 
+Hence in the return statement, we guarantee that x and y have different sign(XOR), and the result
+and sign of x differs.
+
+3. twoscom2SignedVal
+First, we store the sign bit in `sign`. First, we XOR x and `sign`. If x is negative, the result is ~x,
+and x if x is positive. Also, sign&1 is 1 if x is negative and 0 otherwise. Hence, adding these two is
+the evaluation of |x|. Now we need not change the sign bit, so we OR it with `sign`.
+
+4. nibbleReverse
+We first make three masks, each representing 0x0000FFFF, 0x00FF00FF, and 0x0F0F0F0F. Say the nibbles are
+first located as 1 2 3 4 5 6 7 8. Each integer corresponds to a nibble. Now, if we shift x 4 nibbles left,
+we obtain 5 6 7 8 0 0 0 0. Here, 0 is the real zero. Also, if we shift x 4 nibbles and apply `mask0`, we obtain
+0 0 0 0 1 2 3 4. Add the two and restore this value to x. Now, we do a similar thing by shifting x 2 nibbles, and
+apply `mask1`. After doing each shift and applying the mask and OR the results, we obtain 7 8 5 6 3 4 1 2.
+This is because 7 8 0 0 3 4 0 0 | 0 0 5 6 0 0 1 2 = 7 8 5 6 3 4 1 2.
+Hence, we finally need to only switch the odd nibbles and even nibbles. This is also a similar progress, letting
+the shift step as 1 nibble. 
+
+5. bitFilter
+First, we design `highmask` which has bits greater than `highbit` 0, and 1 if lower.
+Here, we initialize it with 1 << highbit, and propagate this 1 to let the rest of the
+lower bits to be 1. We implement this by doubling the steps, and OR it with the shifted value.
+After ANDing `input` and `highmask`, we erased the bits greater than `highbit`. Now, we shift the `input`
+right and left again via size `lowbit`, which erases the desired least bits. 
+
+6. addAndDivideBy4
+We first let `signX`, `signY`, `signSum` to stand each for the sign of x, y, and x + y.
+Here, we detect overflow by the usual way. Also, we implement divideByFour by follows. 
+First, shift the sum right 2 steps. After this, we should add 1 to the result if the original sum
+was negative and not a multiple of 4. We detect this by the later phrase of the statement defining 
+`divideByFour`. Finally, return the result that uses `overflow` and `~overflow` as a bitmask. 
+
+7. numZerosFirst
+We evaluate the return value via binary expression. First, we check whether there are 16 consecutive
+zeros on the MSB's of x. This is obtained by making a filter that has 16 1's followed by 16 zeros. Using this
+as a mask, we guarantee that x has 16 consecutive zeros on its MSB's if and only if the masked value is zero. 
+If this value is zero, we shift x right 16 times and add 16 to the result. Otherwise, we maintain x and the result.
+Doing this for 8, 4, 2, 1, 1, we obtain the desired result. A noticeable point is that we apply 1 two times to 
+consider the case when x == 0.
+
+8. absFloat
+We first find the absolute value, which is removing the sign bit of uf. After this, we check whether uf is NaN.
+This can be checked by asserting that the exponent part is 255 and fraction part is nonzero. In this case, return uf,
+and otherwise the absolute value.
+
+9. castFloat2Int
+We first evaluate the exponent, fraction, and sign part of uf. If expo is too large(overflow), we return the desired 
+constant. If exponent is too small, it means the absolute value is smaller than 1, hence 0 is returned. Otherwise if 
+exponent is smaller or equal to 150, we need to shift the fraction right, and otherwise left. Finally, we apply the 
+sign to use two's complement.
+
+10. compareFloat
+First, we extract the sign, exponent, fraction of each float. If both are zero, meaning all exponents and fractions are
+zero, return 0. Otherwise if there is a NaN among uf and ug, return 0 as well. If the signs are different, it is easy 
+because we returned whether ug is positive. Finally, if uf and ug are same, return 0. 
+Now we are left the case where the signs coincide, and both are truthy values. Hence, we first determine the size of absolute 
+values comparing exponent first, and then fraction. If ths sign was negative, toggle the result.
+
